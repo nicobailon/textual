@@ -14,9 +14,11 @@ import SwiftUI
 struct TextSelectionInteraction: ViewModifier {
   #if TEXTUAL_ENABLE_TEXT_SELECTION
     @Environment(\.textSelection) private var textSelection
+    @Environment(\.textSelectionChange) private var textSelectionChange
     @Environment(TextSelectionCoordinator.self) private var coordinator: TextSelectionCoordinator?
 
     @State private var model = TextSelectionModel()
+    @State private var origin = CGPoint.zero
   #endif
 
   func body(content: Content) -> some View {
@@ -31,6 +33,10 @@ struct TextSelectionInteraction: ViewModifier {
               }
           }
           .modifier(PlatformTextSelectionInteraction(model: model))
+          .onGeometryChange(for: CGPoint.self, of: { $0.frame(in: .textContainer).origin }) { origin = $0 }
+          .onChange(of: model.selectedRange) {
+            reportSelection()
+          }
       } else {
         content
       }
@@ -38,6 +44,20 @@ struct TextSelectionInteraction: ViewModifier {
       content
     #endif
   }
+
+  #if TEXTUAL_ENABLE_TEXT_SELECTION
+    private func reportSelection() {
+      guard let textSelectionChange else { return }
+      guard let range = model.selectedRange, !range.isCollapsed else {
+        textSelectionChange(nil)
+        return
+      }
+      let bounds = model.selectionRects(for: range).reduce(CGRect.null) { $0.union($1.rect) }
+      textSelectionChange(
+        TextualSelection(text: model.text(in: range), bounds: bounds.offsetBy(dx: origin.x, dy: origin.y))
+      )
+    }
+  #endif
 }
 
 #if TEXTUAL_ENABLE_TEXT_SELECTION
