@@ -15,6 +15,7 @@ struct TextSelectionInteraction: ViewModifier {
   #if TEXTUAL_ENABLE_TEXT_SELECTION
     @Environment(\.textSelection) private var textSelection
     @Environment(\.textSelectionChange) private var textSelectionChange
+    @Environment(\.textLayoutChange) private var textLayoutChange
     @Environment(TextSelectionCoordinator.self) private var coordinator: TextSelectionCoordinator?
 
     @State private var model = TextSelectionModel()
@@ -30,10 +31,14 @@ struct TextSelectionInteraction: ViewModifier {
               .onChange(of: AnyTextLayoutCollection(layoutCollection), initial: true) {
                 model.setCoordinator(coordinator)
                 model.setLayoutCollection(layoutCollection)
+                reportLayout()
               }
           }
           .modifier(PlatformTextSelectionInteraction(model: model))
-          .onGeometryChange(for: CGPoint.self, of: { $0.frame(in: .textContainer).origin }) { origin = $0 }
+          .onGeometryChange(for: CGPoint.self, of: { $0.frame(in: .textContainer).origin }) {
+            origin = $0
+            reportLayout()
+          }
           .onChange(of: model.selectedRange) {
             reportSelection()
           }
@@ -46,6 +51,10 @@ struct TextSelectionInteraction: ViewModifier {
   }
 
   #if TEXTUAL_ENABLE_TEXT_SELECTION
+    private func reportLayout() {
+      textLayoutChange?(TextualTextLayout(model: model, origin: origin))
+    }
+
     private func reportSelection() {
       guard let textSelectionChange else { return }
       guard let range = model.selectedRange, !range.isCollapsed else {
