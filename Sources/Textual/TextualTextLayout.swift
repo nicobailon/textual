@@ -63,6 +63,11 @@ public struct TextualHit: Equatable, Sendable {
       return rect.isNull ? nil : rect
     }
 
+    /// All the text the view draws, in the order its offsets count it.
+    public var string: String {
+      model.hasText ? model.text(in: TextRange(start: model.startPosition, end: model.endPosition)) : ""
+    }
+
     private func wordRange(at position: TextPosition) -> TextRange? {
       #if os(macOS)
         model.wordRange(for: position)
