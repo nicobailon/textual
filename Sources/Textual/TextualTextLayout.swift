@@ -27,7 +27,7 @@ public struct TextualHit: Equatable, Sendable {
   ///
   /// A new value arrives with every layout change; points and bounds are in the text view's coordinate space.
   @MainActor
-  public struct TextualTextLayout: Identifiable {
+  public struct TextualTextLayout {
     let model: TextSelectionModel
     let origin: CGPoint
 
