@@ -27,9 +27,12 @@ public struct TextualHit: Equatable, Sendable {
   ///
   /// A new value arrives with every layout change; points and bounds are in the text view's coordinate space.
   @MainActor
-  public struct TextualTextLayout {
+  public struct TextualTextLayout: Identifiable {
     let model: TextSelectionModel
     let origin: CGPoint
+
+    /// The same for every layout of one text fragment, through rewraps: one per paragraph flow or code block.
+    public var id: ObjectIdentifier { ObjectIdentifier(model) }
 
     init(model: TextSelectionModel, origin: CGPoint) {
       self.model = model
