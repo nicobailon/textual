@@ -102,7 +102,7 @@ import SwiftUI
 /// When you need to parse something other than Markdown, use ``init(_:parser:)`` with a custom
 /// ``MarkupParser`` implementation.
 public struct StructuredText: View {
-  @State private var attributedString = AttributedString()
+  @State private var attributedString: AttributedString?
 
   private let markup: String
   private let parser: any MarkupParser
@@ -116,7 +116,9 @@ public struct StructuredText: View {
   }
 
   public var body: some View {
-    WithAttachments(attributedString) {
+    // Parsed here too on the first pass: an empty first layout makes lazy stacks build every row it would take to
+    // fill the screen at zero height.
+    WithAttachments(attributedString ?? parse(markup)) {
       BlockContent(content: $0)
         .modifier(TextSelectionInteraction())
         .modifier(TextSelectionCoordination())
@@ -130,7 +132,11 @@ public struct StructuredText: View {
   }
 
   private func markupDidChange(_ markup: String) {
-    self.attributedString = (try? parser.attributedString(for: markup)) ?? .init()
+    self.attributedString = parse(markup)
+  }
+
+  private func parse(_ markup: String) -> AttributedString {
+    (try? parser.attributedString(for: markup)) ?? .init()
   }
 }
 

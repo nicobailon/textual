@@ -33,7 +33,7 @@ struct WithInlineStyle<Content: View>: View {
   }
 
   var body: some View {
-    content(output ?? AttributedString())
+    content(output ?? Self.styled(input, style: style, in: environment))
       .onChange(of: Tuple(input, style, environment), initial: true) { _, newValue in
         resolve(
           attributedString: newValue.values.0,
@@ -48,6 +48,14 @@ struct WithInlineStyle<Content: View>: View {
     style: InlineStyle,
     in environment: TextEnvironmentValues
   ) {
+    self.output = Self.styled(attributedString, style: style, in: environment)
+  }
+
+  private static func styled(
+    _ attributedString: AttributedString,
+    style: InlineStyle,
+    in environment: TextEnvironmentValues
+  ) -> AttributedString {
     var output = attributedString
 
     for run in attributedString.runs {
@@ -78,6 +86,6 @@ struct WithInlineStyle<Content: View>: View {
       output[run.range].mergeAttributes(attributes, mergePolicy: .keepNew)
     }
 
-    self.output = output
+    return output
   }
 }
