@@ -7,6 +7,15 @@
 
   // A lazy stack sizes a new row from its first layout: text that is empty there makes it build every row it takes to
   // fill the screen at zero height.
+  private struct Spaced: StructuredText.ParagraphStyle {
+    static let gap: CGFloat = 40
+
+    func makeBody(configuration: Configuration) -> some View {
+      configuration.label
+        .textual.blockSpacing(.init(top: Self.gap, bottom: 0))
+    }
+  }
+
   @MainActor
   struct FirstLayoutTests {
     @Test
@@ -43,23 +52,16 @@
       #expect(inline.fittingSize.height > line)
     }
 
-    // Until a block's spacing preference arrives, the layout reads the spacing the block sets on itself: both have to
-    // space the blocks alike.
+    // A block's spacing preference only arrives after a layout, so this measures before it can: the gap between two
+    // paragraphs must already be the style's.
     @Test
-    func blocksAreSpacedAlikeBeforeAndAfterTheirPreferenceArrives() {
-      let view = NSHostingView(
-        rootView: StructuredText(markdown: "One\n\nTwo\n\n# Three\n\n```\nfour\n```\n\n- five\n- six\n\n> seven\n\nEight").frame(width: 300)
+    func paragraphsAreSpacedOnTheirFirstLayout() {
+      let one = NSHostingView(rootView: StructuredText(markdown: "One").textual.paragraphStyle(Spaced()).frame(width: 300))
+      let two = NSHostingView(
+        rootView: StructuredText(markdown: "One\n\nOne").textual.paragraphStyle(Spaced()).frame(width: 300)
       )
-      let window = NSWindow(contentRect: .init(x: 0, y: 0, width: 300, height: 600), styleMask: [], backing: .buffered, defer: true)
-      window.contentView = view
-      let first = view.fittingSize.height
 
-      for _ in 0..<5 {
-        RunLoop.main.run(until: .now + 0.05)
-        view.layoutSubtreeIfNeeded()
-      }
-
-      #expect(first == view.fittingSize.height)
+      #expect(abs(two.fittingSize.height - 2 * one.fittingSize.height - Spaced.gap) < 1)
     }
 
     @Test
