@@ -43,6 +43,25 @@
       #expect(inline.fittingSize.height > line)
     }
 
+    // Until a block's spacing preference arrives, the layout reads the spacing the block sets on itself: both have to
+    // space the blocks alike.
+    @Test
+    func blocksAreSpacedAlikeBeforeAndAfterTheirPreferenceArrives() {
+      let view = NSHostingView(
+        rootView: StructuredText(markdown: "One\n\nTwo\n\n# Three\n\n```\nfour\n```\n\n- five\n- six\n\n> seven\n\nEight").frame(width: 300)
+      )
+      let window = NSWindow(contentRect: .init(x: 0, y: 0, width: 300, height: 600), styleMask: [], backing: .buffered, defer: true)
+      window.contentView = view
+      let first = view.fittingSize.height
+
+      for _ in 0..<5 {
+        RunLoop.main.run(until: .now + 0.05)
+        view.layoutSubtreeIfNeeded()
+      }
+
+      #expect(first == view.fittingSize.height)
+    }
+
     @Test
     func memoComputesOncePerDistinctKey() {
       let memo = Memo<String, Int>()

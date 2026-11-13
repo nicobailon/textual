@@ -40,7 +40,7 @@ extension StructuredText {
     @Environment(\.listItemSpacingEnabled) private var listItemSpacingEnabled
     @Environment(\.resolvedListItemSpacing) private var resolvedListItemSpacing
 
-    @State private var blockSpacing = BlockSpacing()
+    @State private var blockSpacing: BlockSpacing?
 
     private let content: Content
 
@@ -49,14 +49,20 @@ extension StructuredText {
     }
 
     var body: some View {
-      // Read the block spacing preference and apply it as a layout value
+      // The preference arrives only after a layout; until then the layout reads the block's own BlockSpacingKey.
       content
         .onPreferenceChange(BlockSpacingKey.self) { @MainActor value in
-          // Override with the resolved list item spacing if enabled
-          blockSpacing = listItemSpacingEnabled ? resolvedListItemSpacing : value
+          blockSpacing = value
         }
-        .layoutValue(key: BlockSpacingKey.self, value: blockSpacing)
+        .layoutValue(
+          key: ResolvedBlockSpacingKey.self,
+          value: listItemSpacingEnabled ? resolvedListItemSpacing : blockSpacing
+        )
     }
+  }
+
+  struct ResolvedBlockSpacingKey: LayoutValueKey {
+    static let defaultValue: BlockSpacing? = nil
   }
 
   fileprivate struct BlockVStackLayout: Layout {
@@ -71,14 +77,19 @@ extension StructuredText {
         spacings: subviews.indices.dropLast().map { index in
           let current = subviews[index]
           let next = subviews[index + 1]
-          let currentBottom = current[BlockSpacingKey.self].bottom
-          let nextTop = next[BlockSpacingKey.self].top
+          let currentBottom = Self.blockSpacing(of: current).bottom
+          let nextTop = Self.blockSpacing(of: next).top
 
           // Take the maximum block spacing, otherwise the preferred view spacing
           return [currentBottom, nextTop].compactMap(\.self).max()
             ?? current.spacing.distance(to: next.spacing, along: .vertical)
         }
       )
+    }
+
+    // Without one, makeCache asks the subview for its view spacing, which walks its whole subtree.
+    private static func blockSpacing(of subview: LayoutSubview) -> BlockSpacing {
+      subview[ResolvedBlockSpacingKey.self] ?? subview[BlockSpacingKey.self]
     }
 
     func sizeThatFits(
