@@ -27,7 +27,7 @@ import SwiftUI
 
 struct TextFragment<Content: AttributedStringProtocol>: View {
   @Environment(\.textEnvironment) private var textEnvironment
-  @State private var textBuilder: TextBuilder?
+  @State private var textBuilder = Memo<Content, TextBuilder>()
 
   private let content: Content
 
@@ -39,11 +39,8 @@ struct TextFragment<Content: AttributedStringProtocol>: View {
     text
       .customAttribute(TextFragmentAttribute())
       .onGeometryChange(for: CGSize?.self, of: \.textContainerSize) { size in
-        guard let size, let textBuilder else { return }
+        guard let size, let textBuilder = textBuilder.value else { return }
         textBuilder.sizeChanged(size, environment: textEnvironment)
-      }
-      .onChange(of: content, initial: true) { _, newValue in
-        self.textBuilder = TextBuilder(newValue, environment: textEnvironment)
       }
       .modifier(TextSelectionBackground())
       .modifier(AttachmentOverlay(attachments: content.attachments()))
@@ -51,7 +48,7 @@ struct TextFragment<Content: AttributedStringProtocol>: View {
   }
 
   private var text: Text {
-    textBuilder?.text ?? TextBuilder.text(content, environment: textEnvironment)
+    textBuilder.value(for: content) { TextBuilder($0, environment: textEnvironment) }.text
   }
 }
 
