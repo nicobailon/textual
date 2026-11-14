@@ -68,8 +68,8 @@ struct WithInlineStyle<Content: View>: View {
         }
       }
 
-      if run.link != nil {
-        style.link.apply(in: &attributes, environment: environment)
+      if let link = run.link {
+        (link.scheme.flatMap { style.schemeLinks[$0] } ?? style.link).apply(in: &attributes, environment: environment)
       }
 
       output[run.range].mergeAttributes(attributes, mergePolicy: .keepNew)
