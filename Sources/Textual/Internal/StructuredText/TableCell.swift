@@ -17,7 +17,8 @@ extension StructuredText {
         label: .init(label),
         indentationLevel: indentationLevel,
         row: identifier.row,
-        column: identifier.column
+        column: identifier.column,
+        text: String(content.characters)
       )
       let resolvedStyle =
         tableCellStyle

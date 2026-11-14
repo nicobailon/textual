@@ -19,6 +19,8 @@ extension StructuredText {
     public let row: Int
     /// The column index of the cell.
     public let column: Int
+    /// The cell's text as plain characters, without its inline styles.
+    public let text: String
   }
 
   /// A style that controls how `StructuredText` renders individual table cells.
