@@ -19,7 +19,9 @@ struct AttachmentOverlay: ViewModifier {
   func body(content: Content) -> some View {
     content
       .overlayPreferenceValue(Text.LayoutKey.self) { value in
-        if let anchoredLayout = value.first {
+        // Most fragments have no attachments; their geometry reader would still resolve its anchor on every frame
+        // the text scrolls.
+        if attachments.isEmpty == false, let anchoredLayout = value.first {
           GeometryReader { geometry in
             AttachmentView(
               attachments: attachments,
