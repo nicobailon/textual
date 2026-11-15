@@ -29,7 +29,8 @@ extension StructuredText {
         indentationLevel: indentationLevel,
         languageHint: languageHint,
         codeBlock: .init(content),
-        highlighterTheme: highlighterTheme
+        highlighterTheme: highlighterTheme,
+        content: content
       )
       let resolvedStyle = codeBlockStyle.resolve(configuration: configuration)
 
