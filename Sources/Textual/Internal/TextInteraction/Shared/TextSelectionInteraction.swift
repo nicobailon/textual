@@ -12,6 +12,13 @@ import SwiftUI
 // remain independent.
 
 struct TextSelectionInteraction: ViewModifier {
+  // An area selects every `Text` inside it as one text, with or without the `textSelection` environment value.
+  private let isArea: Bool
+
+  init(isArea: Bool = false) {
+    self.isArea = isArea
+  }
+
   #if TEXTUAL_ENABLE_TEXT_SELECTION
     @Environment(\.textSelection) private var textSelection
     @Environment(\.textSelectionChange) private var textSelectionChange
@@ -20,11 +27,30 @@ struct TextSelectionInteraction: ViewModifier {
 
     @State private var model = TextSelectionModel()
     @State private var origin = CGPoint.zero
+    @State private var isHovering = false
   #endif
 
   func body(content: Content) -> some View {
     #if TEXTUAL_ENABLE_TEXT_SELECTION
-      if textSelection.allowsSelection {
+      if isArea {
+        // An area tracks its texts only while the pointer is over it or it holds a selection: a press needs the
+        // pointer there, and a card scrolling past does no selection work. Its origin is its own space's, always zero.
+        let isActive = isHovering || model.selectedRange != nil
+        content
+          .overlayTextLayoutCollection(includesAllText: true, isActive: isActive) { layoutCollection in
+            Color.clear
+              .onChange(of: AnyTextLayoutCollection(layoutCollection), initial: true) {
+                model.setCoordinator(coordinator)
+                model.setLayoutCollection(layoutCollection)
+                reportLayout()
+              }
+          }
+          .modifier(PlatformTextSelectionInteraction(model: model, isArea: true, isActive: isActive))
+          .onChange(of: model.selectedRange) {
+            reportSelection()
+          }
+          .onHover { isHovering = $0 }
+      } else if textSelection.allowsSelection {
         content
           .overlayTextLayoutCollection { layoutCollection in
             Color.clear
@@ -34,7 +60,7 @@ struct TextSelectionInteraction: ViewModifier {
                 reportLayout()
               }
           }
-          .modifier(PlatformTextSelectionInteraction(model: model))
+          .modifier(PlatformTextSelectionInteraction(model: model, isArea: isArea))
           .onGeometryChange(for: CGPoint.self, of: { $0.frame(in: .textContainer).origin }) {
             origin = $0
             reportLayout()

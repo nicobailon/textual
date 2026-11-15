@@ -26,6 +26,11 @@
           : attributedString.length
 
         if lowerBound < upperBound {
+          if separatesLayouts, attributedText.length > 0,
+            attributedText.string.last?.isNewline == false
+          {
+            attributedText.append(NSAttributedString(string: "\n"))
+          }
           attributedText.append(
             attributedString.attributedSubstring(
               from: NSRange(lowerBound..<upperBound)

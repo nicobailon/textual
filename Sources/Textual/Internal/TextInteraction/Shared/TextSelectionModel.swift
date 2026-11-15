@@ -31,6 +31,9 @@
     @ObservationIgnored
     var selectionDidChange: (() -> Void)?
 
+    // Read only while there is a selection, so a rewrap redraws its highlight.
+    private(set) var layoutRevision = 0
+
     @ObservationIgnored
     private var layoutCollection: any TextLayoutCollection
 
@@ -52,6 +55,9 @@
 
       let oldLayoutCollection = self.layoutCollection
       self.layoutCollection = layoutCollection
+      if selectedRange != nil {
+        layoutRevision &+= 1
+      }
 
       guard
         let selectedRange,
@@ -78,6 +84,10 @@
 
     func url(for point: CGPoint) -> URL? {
       layoutCollection.url(for: point)
+    }
+
+    func isText(at point: CGPoint) -> Bool {
+      layoutCollection.isText(at: point)
     }
 
     func layoutIndex(of layout: Text.Layout) -> Int? {

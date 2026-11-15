@@ -14,6 +14,11 @@
     var model: TextSelectionModel
     var exclusionRects: [CGRect]
     var openURL: OpenURLAction
+    var isArea = false {
+      didSet {
+        if isArea != oldValue { updateTrackingAreas() }
+      }
+    }
 
     override var acceptsFirstResponder: Bool { true }
     override var isFlipped: Bool { true }
@@ -21,6 +26,12 @@
 
     private var dragStart: TextPosition?
     private var selectionAnchor: TextPosition?
+
+    // In an area, a press on text that never moves is a click for the view under the text, sent on to it on release.
+    private var pressedAt: NSEvent?
+    private var isDragging = false
+    private var passedOn: TimeInterval?
+    private var showsTextCursor = false
 
     init(
       model: TextSelectionModel,
@@ -47,14 +58,64 @@
 
       if isExcluded {
         return nil
+      } else if isArea {
+        guard let event = NSApp.currentEvent, event.type == .leftMouseDown,
+          event.modifierFlags.contains(.control) == false, event.timestamp != passedOn,
+          model.isText(at: localPoint)
+        else { return nil }
+        return super.hitTest(point)
       } else {
         return super.hitTest(point)
       }
     }
 
-    override func mouseDown(with event: NSEvent) {
-      window?.makeFirstResponder(self)
+    override func updateTrackingAreas() {
+      super.updateTrackingAreas()
+      trackingAreas.forEach(removeTrackingArea)
+      guard isArea else { return }
+      addTrackingArea(
+        NSTrackingArea(
+          rect: .zero,
+          options: [.mouseMoved, .mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+          owner: self
+        )
+      )
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+      guard isArea else {
+        super.mouseMoved(with: event)
+        return
+      }
       let location = convert(event.locationInWindow, from: nil)
+      if exclusionRects.contains(where: { $0.contains(location) }) == false, model.isText(at: location) {
+        (model.url(for: location) != nil ? NSCursor.pointingHand : NSCursor.iBeam).set()
+        showsTextCursor = true
+      } else if showsTextCursor {
+        NSCursor.arrow.set()
+        showsTextCursor = false
+      }
+    }
+
+    override func mouseExited(with event: NSEvent) {
+      guard isArea else {
+        super.mouseExited(with: event)
+        return
+      }
+      if showsTextCursor {
+        NSCursor.arrow.set()
+        showsTextCursor = false
+      }
+    }
+
+    override func mouseDown(with event: NSEvent) {
+      // A click passed on leaves the keyboard where the view under the text puts it.
+      if isArea == false || event.clickCount > 1 {
+        window?.makeFirstResponder(self)
+      }
+      let location = convert(event.locationInWindow, from: nil)
+      pressedAt = nil
+      isDragging = false
 
       switch event.clickCount {
       case 1:
@@ -62,6 +123,7 @@
           openURL(url)
         } else {
           resetSelection()
+          if isArea { pressedAt = event }
         }
         dragStart = model.closestPosition(to: location)
       case 2:
@@ -86,6 +148,12 @@
 
       let location = convert(event.locationInWindow, from: nil)
 
+      if let pressedAt, isDragging == false {
+        guard Self.isDrag(from: convert(pressedAt.locationInWindow, from: nil), to: location) else { return }
+        isDragging = true
+        window?.makeFirstResponder(self)
+      }
+
       guard let currentPosition = model.closestPosition(to: location) else {
         return
       }
@@ -96,6 +164,38 @@
 
     override func mouseUp(with event: NSEvent) {
       dragStart = nil
+      if let pressedAt, isDragging == false {
+        passOn(pressedAt, event)
+      }
+      pressedAt = nil
+      isDragging = false
+    }
+
+    // A hand's tremor during a click moves the pointer a point or two.
+    static func isDrag(from start: CGPoint, to end: CGPoint) -> Bool {
+      hypot(end.x - start.x, end.y - start.y) > 3
+    }
+
+    // Posted rather than sent: a control under the text may track the press until its release comes from the queue.
+    private func passOn(_ down: NSEvent, _ up: NSEvent) {
+      guard let window else { return }
+      let timestamp = ProcessInfo.processInfo.systemUptime
+      let events = [down, up].compactMap {
+        NSEvent.mouseEvent(
+          with: $0.type,
+          location: $0.locationInWindow,
+          modifierFlags: $0.modifierFlags,
+          timestamp: timestamp,
+          windowNumber: window.windowNumber,
+          context: nil,
+          eventNumber: $0.eventNumber,
+          clickCount: 1,
+          pressure: $0.pressure
+        )
+      }
+      guard events.count == 2 else { return }
+      passedOn = timestamp
+      events.forEach { window.postEvent($0, atStart: false) }
     }
 
     override func rightMouseDown(with event: NSEvent) {

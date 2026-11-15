@@ -163,6 +163,29 @@ extension TextualNamespace where Base: View {
     #endif
   }
 
+  /// Makes every SwiftUI `Text` inside the view selectable as one text, so a drag can run from one to the next.
+  ///
+  /// On macOS, a press that starts on text and moves selects; one that doesn't is sent on to the view under the
+  /// text, so text inside a button still clicks it. Presses elsewhere, hover and scrolling reach the views below.
+  /// Use ``textual/unselectableText()`` on text that is a control's own label.
+  @available(tvOS, unavailable)
+  @available(watchOS, unavailable)
+  @MainActor public func textSelectionArea() -> some View {
+    #if TEXTUAL_ENABLE_TEXT_SELECTION && canImport(AppKit) && !targetEnvironment(macCatalyst)
+      base
+        .modifier(TextSelectionInteraction(isArea: true))
+        .modifier(TextSelectionCoordination())
+        .coordinateSpace(.textContainer)
+    #else
+      base
+    #endif
+  }
+
+  /// Leaves the text inside the view out of an enclosing ``textual/textSelectionArea()``.
+  @MainActor public func unselectableText() -> some View {
+    base.transformPreference(Text.LayoutKey.self) { $0.removeAll() }
+  }
+
   /// Sets the spacing used between table cells in ``StructuredText``.
   public func tableCellSpacing(
     horizontal: CGFloat? = nil,

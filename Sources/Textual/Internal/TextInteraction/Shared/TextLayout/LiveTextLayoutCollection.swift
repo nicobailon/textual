@@ -4,12 +4,15 @@
   final class LiveTextLayoutCollection: TextLayoutCollection {
     private(set) lazy var layouts: [any TextLayout] = makeLayouts()
 
+    let separatesLayouts: Bool
+
     private let base: Text.LayoutKey.Value
     private let geometry: GeometryProxy
 
-    init(base: Text.LayoutKey.Value, geometry: GeometryProxy) {
+    init(base: Text.LayoutKey.Value, geometry: GeometryProxy, includesAllText: Bool = false) {
       self.base = base
       self.geometry = geometry
+      self.separatesLayouts = includesAllText
     }
 
     func isEqual(to other: any TextLayoutCollection) -> Bool {
@@ -29,8 +32,8 @@
 
     private func makeLayouts() -> [any TextLayout] {
       base
-        // We are only interested in text fragments
-        .filter(\.layout.isTextFragment)
+        // We are only interested in text fragments, unless a selection area takes every text in it
+        .filter { separatesLayouts || $0.layout.isTextFragment }
         .map { anchoredLayout in
           LiveTextLayout(
             anchoredLayout: anchoredLayout,

@@ -13,24 +13,29 @@
   struct AppKitTextInteractionOverlay: NSViewRepresentable {
     private let model: TextSelectionModel
     private let overflowFrames: [CGRect]
+    private let isArea: Bool
 
-    init(model: TextSelectionModel, overflowFrames: [CGRect]) {
+    init(model: TextSelectionModel, overflowFrames: [CGRect], isArea: Bool = false) {
       self.model = model
       self.overflowFrames = overflowFrames
+      self.isArea = isArea
     }
 
     func makeNSView(context: Context) -> NSTextInteractionView {
-      NSTextInteractionView(
+      let view = NSTextInteractionView(
         model: model,
         exclusionRects: overflowFrames,
         openURL: context.environment.openURL
       )
+      view.isArea = isArea
+      return view
     }
 
     func updateNSView(_ nsView: NSTextInteractionView, context: Context) {
       nsView.model = model
       nsView.exclusionRects = overflowFrames
       nsView.openURL = context.environment.openURL
+      nsView.isArea = isArea
     }
   }
 #endif

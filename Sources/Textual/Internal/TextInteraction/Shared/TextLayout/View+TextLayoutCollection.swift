@@ -12,11 +12,15 @@
 
   extension View {
     func overlayTextLayoutCollection(
+      includesAllText: Bool = false,
+      isActive: Bool = true,
       @ViewBuilder content: @escaping (any TextLayoutCollection) -> some View
     ) -> some View {
       overlayPreferenceValue(Text.LayoutKey.self) { value in
-        GeometryReader { geometry in
-          content(LiveTextLayoutCollection(base: value, geometry: geometry))
+        if isActive {
+          GeometryReader { geometry in
+            content(LiveTextLayoutCollection(base: value, geometry: geometry, includesAllText: includesAllText))
+          }
         }
       }
     }

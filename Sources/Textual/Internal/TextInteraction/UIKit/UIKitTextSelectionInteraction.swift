@@ -15,7 +15,7 @@
   struct UIKitTextSelectionInteraction: ViewModifier {
     private let model: TextSelectionModel
 
-    init(model: TextSelectionModel) {
+    init(model: TextSelectionModel, isArea: Bool = false, isActive: Bool = true) {
       self.model = model
     }
 

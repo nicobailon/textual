@@ -3,6 +3,8 @@
 
   protocol TextLayoutCollection {
     var layouts: [any TextLayout] { get }
+    // A selection area's texts are separate views: their words would run together when copied.
+    var separatesLayouts: Bool { get }
 
     func isEqual(to other: any TextLayoutCollection) -> Bool
     func needsPositionReconciliation(with other: any TextLayoutCollection) -> Bool
@@ -20,6 +22,10 @@
       base.layouts
     }
 
+    var separatesLayouts: Bool {
+      base.separatesLayouts
+    }
+
     func isEqual(to other: any TextLayoutCollection) -> Bool {
       base.isEqual(to: other)
     }
@@ -34,6 +40,20 @@
 
     static func == (lhs: AnyTextLayoutCollection, rhs: AnyTextLayoutCollection) -> Bool {
       lhs.isEqual(to: rhs.base)
+    }
+  }
+
+  extension TextLayoutCollection {
+    var separatesLayouts: Bool { false }
+
+    func isText(at point: CGPoint) -> Bool {
+      layouts.contains { layout in
+        layout.frame.insetBy(dx: -2, dy: -2).contains(point)
+          && layout.lines.contains {
+            $0.typographicBounds.offsetBy(dx: layout.origin.x, dy: layout.origin.y)
+              .insetBy(dx: -2, dy: -1).contains(point)
+          }
+      }
     }
   }
 
