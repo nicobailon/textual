@@ -15,3 +15,18 @@ struct OverflowFrameKey: PreferenceKey {
     value.append(contentsOf: nextValue())
   }
 }
+
+extension TextualNamespace where Base: View {
+  /// Lets the view take clicks inside selectable text, such as a code block's own buttons.
+  ///
+  /// The text selection overlay covers the whole text, so controls drawn by a custom style
+  /// otherwise never see the pointer.
+  @MainActor public func interactive() -> some View {
+    base.background(
+      GeometryReader { geometry in
+        Color.clear
+          .preference(key: OverflowFrameKey.self, value: [geometry.frame(in: .textContainer)])
+      }
+    )
+  }
+}
