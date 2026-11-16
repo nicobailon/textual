@@ -254,10 +254,15 @@
       }
       guard let (down, up) = handedOn, let window, window.windowNumber == down.windowNumber, let content = window.contentView
       else { return }
-      let hit = content.hitTest(content.superview?.convert(down.locationInWindow, from: nil) ?? down.locationInWindow)
-      guard let hit, (hit is NSControl) == false else { return }
+      guard Self.handsClick(to: content.hitTest(content.superview?.convert(down.locationInWindow, from: nil) ?? down.locationInWindow))
+      else { return }
       window.sendEvent(down)
       window.sendEvent(up)
+    }
+
+    static func handsClick(to hit: NSView?) -> Bool {
+      guard let hit else { return false }
+      return (hit is NSControl) == false
     }
 
     override func rightMouseDown(with event: NSEvent) {
