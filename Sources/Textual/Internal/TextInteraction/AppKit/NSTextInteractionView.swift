@@ -39,6 +39,7 @@
     private var pressedAt: NSEvent?
     private var isDragging = false
     private var showsTextCursor = false
+    private var isHandingOn = false
     private var ownsPress = false
     private var clickAway: Any?
 
@@ -69,7 +70,8 @@
       if isExcluded {
         return nil
       } else if isArea {
-        guard let event = NSApp.currentEvent, event.type == .leftMouseDown, event.modifierFlags.contains(.control) == false
+        guard isHandingOn == false, let event = NSApp.currentEvent, event.type == .leftMouseDown,
+          event.modifierFlags.contains(.control) == false
         else { return nil }
         guard model.isText(at: localPoint) else { return nil }
         return super.hitTest(point)
@@ -231,10 +233,15 @@
       hypot(end.x - start.x, end.y - start.y) > 3
     }
 
-    // Sent within the release the layer is handling: NSApp.currentEvent is still that release, so the hit test leaves the
-    // press to the control under the text. Posted to the queue instead, it came back as a new press the layer took again.
+    // Sent within the release the layer is handling, while its hit test steps aside: posted to the queue instead, it came
+    // back as a new press the layer took again. Only to SwiftUI-drawn content: an AppKit control under the text tracks a
+    // press in its own loop, and a pop-up would open its menu.
     private func passOn(_ down: NSEvent, _ up: NSEvent) {
-      guard let window else { return }
+      guard let window, let content = window.contentView else { return }
+      isHandingOn = true
+      defer { isHandingOn = false }
+      let hit = content.hitTest(content.superview?.convert(down.locationInWindow, from: nil) ?? down.locationInWindow)
+      guard let hit, (hit is NSControl) == false else { return }
       window.sendEvent(down)
       window.sendEvent(up)
     }
