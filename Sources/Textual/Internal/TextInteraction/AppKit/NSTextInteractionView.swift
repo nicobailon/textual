@@ -11,12 +11,19 @@
   // `openURL`.
 
   final class NSTextInteractionView: NSView {
-    var model: TextSelectionModel
+    var model: TextSelectionModel {
+      didSet {
+        if model !== oldValue { watchSelection() }
+      }
+    }
     var exclusionRects: [CGRect]
     var openURL: OpenURLAction
     var isArea = false {
       didSet {
-        if isArea != oldValue { updateTrackingAreas() }
+        if isArea != oldValue {
+          updateTrackingAreas()
+          watchSelection()
+        }
       }
     }
 
@@ -46,6 +53,7 @@
 
       super.init(frame: .zero)
       self.wantsLayer = false
+      watchSelection()
     }
 
     required init?(coder: NSCoder) {
@@ -71,20 +79,33 @@
       }
     }
 
-    // An area takes only presses on its text, so a press anywhere else in the window ends its selection, on the release:
-    // a button there, such as one acting on the selection, runs first.
     override func viewDidMoveToWindow() {
       super.viewDidMoveToWindow()
-      if let clickAway {
+      updateClickAway()
+    }
+
+    private func watchSelection() {
+      guard isArea else { return }
+      model.selectionDidChange = { [weak self] in
+        self?.updateClickAway()
+      }
+      updateClickAway()
+    }
+
+    // An area takes only presses on its text, so while it holds a selection a press anywhere else in the window ends it,
+    // on the release: a button there, such as one acting on the selection, runs first. Only then is a monitor installed.
+    private func updateClickAway() {
+      let wanted = isArea && window != nil && model.selectedRange != nil
+      if wanted, clickAway == nil {
+        clickAway = NSEvent.addLocalMonitorForEvents(matching: .leftMouseUp) { [weak self] event in
+          MainActor.assumeIsolated {
+            if let self, event.window === self.window { self.releasedAway() }
+          }
+          return event
+        }
+      } else if wanted == false, let clickAway {
         NSEvent.removeMonitor(clickAway)
         self.clickAway = nil
-      }
-      guard isArea, window != nil else { return }
-      clickAway = NSEvent.addLocalMonitorForEvents(matching: .leftMouseUp) { [weak self] event in
-        MainActor.assumeIsolated {
-          if let self, event.window === self.window { self.releasedAway() }
-        }
-        return event
       }
     }
 
