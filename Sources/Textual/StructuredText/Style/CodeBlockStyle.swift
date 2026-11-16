@@ -29,6 +29,13 @@ extension StructuredText {
       String(content.characters[...])
     }
 
+    /// The code block's identity in its document, which tells apart two blocks with the same code.
+    public var identity: Int? {
+      content.presentationIntent?.components.first {
+        if case .codeBlock = $0.kind { true } else { false }
+      }?.identity
+    }
+
     /// The code block's first `count` lines, highlighted like ``label``. It lays out only those lines.
     public func label(firstLines count: Int) -> Label {
       let characters = content.characters
@@ -43,6 +50,13 @@ extension StructuredText {
       if end > characters.startIndex, characters[characters.index(before: end)] == "\n" {
         end = characters.index(before: end)
       }
+      return lines(content[..<end])
+    }
+
+    /// The code block's first `count` characters, highlighted like ``label``. It lays out only those characters.
+    public func label(firstCharacters count: Int) -> Label {
+      let characters = content.characters
+      let end = characters.index(characters.startIndex, offsetBy: max(count, 0), limitedBy: characters.endIndex) ?? characters.endIndex
       return lines(content[..<end])
     }
 
