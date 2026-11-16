@@ -40,6 +40,7 @@
     private var isDragging = false
     private var showsTextCursor = false
     private var isHandingOn = false
+    private var handedOn: (down: NSEvent, up: NSEvent)?
     private var ownsPress = false
     private var clickAway: Any?
 
@@ -233,13 +234,26 @@
       hypot(end.x - start.x, end.y - start.y) > 3
     }
 
-    // Sent within the release the layer is handling, while its hit test steps aside: posted to the queue instead, it came
-    // back as a new press the layer took again. Only to SwiftUI-drawn content: an AppKit control under the text tracks a
-    // press in its own loop, and a pop-up would open its menu.
+    // Sent once the release the layer took has gone through: sent within it, a SwiftUI button under the text took the click
+    // only the first time. The hit test steps aside until the click is through, so it can't come back to the layer.
+    // Only to SwiftUI-drawn content: an AppKit control under the text tracks a press in its own loop, and a pop-up would
+    // open its menu.
     private func passOn(_ down: NSEvent, _ up: NSEvent) {
-      guard let window, let content = window.contentView else { return }
+      guard window != nil else { return }
       isHandingOn = true
-      defer { isHandingOn = false }
+      handedOn = (down, up)
+      DispatchQueue.main.async { [weak self] in
+        self?.handOn()
+      }
+    }
+
+    private func handOn() {
+      defer {
+        isHandingOn = false
+        handedOn = nil
+      }
+      guard let (down, up) = handedOn, let window, window.windowNumber == down.windowNumber, let content = window.contentView
+      else { return }
       let hit = content.hitTest(content.superview?.convert(down.locationInWindow, from: nil) ?? down.locationInWindow)
       guard let hit, (hit is NSControl) == false else { return }
       window.sendEvent(down)
