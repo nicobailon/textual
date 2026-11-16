@@ -32,6 +32,8 @@
     private var isDragging = false
     private var passedOn: TimeInterval?
     private var showsTextCursor = false
+    private var ownsPress = false
+    private var clickAway: Any?
 
     init(
       model: TextSelectionModel,
@@ -66,6 +68,34 @@
         return super.hitTest(point)
       } else {
         return super.hitTest(point)
+      }
+    }
+
+    // An area takes only presses on its text, so a press anywhere else in the window ends its selection, on the release:
+    // a button there, such as one acting on the selection, runs first.
+    override func viewDidMoveToWindow() {
+      super.viewDidMoveToWindow()
+      if let clickAway {
+        NSEvent.removeMonitor(clickAway)
+        self.clickAway = nil
+      }
+      guard isArea, window != nil else { return }
+      clickAway = NSEvent.addLocalMonitorForEvents(matching: .leftMouseUp) { [weak self] event in
+        MainActor.assumeIsolated {
+          if let self, event.window === self.window { self.releasedAway() }
+        }
+        return event
+      }
+    }
+
+    private func releasedAway() {
+      if ownsPress {
+        ownsPress = false
+        return
+      }
+      guard model.selectedRange != nil else { return }
+      DispatchQueue.main.async { [weak self] in
+        self?.resetSelection()
       }
     }
 
@@ -116,6 +146,7 @@
       let location = convert(event.locationInWindow, from: nil)
       pressedAt = nil
       isDragging = false
+      ownsPress = isArea
 
       switch event.clickCount {
       case 1:
