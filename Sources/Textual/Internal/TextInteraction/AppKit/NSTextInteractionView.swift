@@ -38,8 +38,6 @@
     // In an area, a press on text that never moves is a click for the view under the text, sent on to it on release.
     private var pressedAt: NSEvent?
     private var isDragging = false
-    private var sentOn: SentOn?
-    private var sentOnEvent: TimeInterval?
     private var showsTextCursor = false
     private var ownsPress = false
     private var clickAway: Any?
@@ -71,16 +69,8 @@
       if isExcluded {
         return nil
       } else if isArea {
-        guard let event = NSApp.currentEvent, event.type == .leftMouseDown, event.modifierFlags.contains(.control) == false,
-          event.timestamp != sentOnEvent
+        guard let event = NSApp.currentEvent, event.type == .leftMouseDown, event.modifierFlags.contains(.control) == false
         else { return nil }
-        let press = SentOn(location: event.locationInWindow, clickCount: event.clickCount, at: ProcessInfo.processInfo.systemUptime)
-        if let sentOn, sentOn.isSent(press) {
-          // Once, whenever it comes back; a hit test asked again for the same event passes it on too.
-          self.sentOn = nil
-          sentOnEvent = event.timestamp
-          return nil
-        }
         guard model.isText(at: localPoint) else { return nil }
         return super.hitTest(point)
       } else {
@@ -241,27 +231,12 @@
       hypot(end.x - start.x, end.y - start.y) > 3
     }
 
-    // Posted rather than sent: a control under the text may track the press until its release comes from the queue.
+    // Sent within the release the layer is handling: NSApp.currentEvent is still that release, so the hit test leaves the
+    // press to the control under the text. Posted to the queue instead, it came back as a new press the layer took again.
     private func passOn(_ down: NSEvent, _ up: NSEvent) {
       guard let window else { return }
-      let timestamp = ProcessInfo.processInfo.systemUptime
-      let events = [down, up].compactMap {
-        NSEvent.mouseEvent(
-          with: $0.type,
-          location: $0.locationInWindow,
-          modifierFlags: $0.modifierFlags,
-          timestamp: timestamp,
-          windowNumber: window.windowNumber,
-          context: nil,
-          eventNumber: $0.eventNumber,
-          clickCount: 1,
-          pressure: $0.pressure
-        )
-      }
-      guard events.count == 2 else { return }
-      sentOn = SentOn(location: down.locationInWindow, clickCount: 1, at: timestamp)
-      sentOnEvent = nil
-      events.forEach { window.postEvent($0, atStart: false) }
+      window.sendEvent(down)
+      window.sendEvent(up)
     }
 
     override func rightMouseDown(with event: NSEvent) {
@@ -453,20 +428,6 @@
       let formatter = Formatter(attributedText)
       pasteboard.setString(formatter.plainText(), forType: .string)
       pasteboard.setString(formatter.html(), forType: .html)
-    }
-  }
-
-  // The click a selection area sends on to the control under its text. It comes back from the queue as a new event with
-  // its timestamp rounded, so it is known by where it lands and its click count; left unclaimed, it lapses rather than
-  // take a later real click.
-  struct SentOn: Equatable {
-    var location: CGPoint
-    var clickCount: Int
-    var at: TimeInterval
-
-    func isSent(_ press: SentOn) -> Bool {
-      press.clickCount == clickCount && hypot(press.location.x - location.x, press.location.y - location.y) < 0.5
-        && press.at >= at && press.at - at < 0.3
     }
   }
 
