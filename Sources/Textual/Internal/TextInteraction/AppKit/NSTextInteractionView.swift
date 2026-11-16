@@ -38,7 +38,8 @@
     // In an area, a press on text that never moves is a click for the view under the text, sent on to it on release.
     private var pressedAt: NSEvent?
     private var isDragging = false
-    private var passedOn: TimeInterval?
+    private var sentOn: SentOn?
+    private var sentOnEvent: TimeInterval?
     private var showsTextCursor = false
     private var ownsPress = false
     private var clickAway: Any?
@@ -70,10 +71,17 @@
       if isExcluded {
         return nil
       } else if isArea {
-        guard let event = NSApp.currentEvent,
-          Self.takesPress(event.type, control: event.modifierFlags.contains(.control), at: event.timestamp, passedOn: passedOn),
-          model.isText(at: localPoint)
+        guard let event = NSApp.currentEvent, event.type == .leftMouseDown, event.modifierFlags.contains(.control) == false,
+          event.timestamp != sentOnEvent
         else { return nil }
+        let press = SentOn(location: event.locationInWindow, clickCount: event.clickCount, at: ProcessInfo.processInfo.systemUptime)
+        if let sentOn, sentOn.isSent(press) {
+          // Once, whenever it comes back; a hit test asked again for the same event passes it on too.
+          self.sentOn = nil
+          sentOnEvent = event.timestamp
+          return nil
+        }
+        guard model.isText(at: localPoint) else { return nil }
         return super.hitTest(point)
       } else {
         return super.hitTest(point)
@@ -228,12 +236,6 @@
       isDragging = false
     }
 
-    // Only a left press, and not the one sent on: it comes back from the queue as a new event, its timestamp rounded, and
-    // taken again it would be sent on again and again. Any real press, a double click's second too, comes later than 10 ms.
-    static func takesPress(_ type: NSEvent.EventType, control: Bool, at time: TimeInterval, passedOn: TimeInterval?) -> Bool {
-      type == .leftMouseDown && control == false && passedOn.map { abs(time - $0) >= 0.01 } != false
-    }
-
     // A hand's tremor during a click moves the pointer a point or two.
     static func isDrag(from start: CGPoint, to end: CGPoint) -> Bool {
       hypot(end.x - start.x, end.y - start.y) > 3
@@ -257,7 +259,8 @@
         )
       }
       guard events.count == 2 else { return }
-      passedOn = timestamp
+      sentOn = SentOn(location: down.locationInWindow, clickCount: 1, at: timestamp)
+      sentOnEvent = nil
       events.forEach { window.postEvent($0, atStart: false) }
     }
 
@@ -450,6 +453,20 @@
       let formatter = Formatter(attributedText)
       pasteboard.setString(formatter.plainText(), forType: .string)
       pasteboard.setString(formatter.html(), forType: .html)
+    }
+  }
+
+  // The click a selection area sends on to the control under its text. It comes back from the queue as a new event with
+  // its timestamp rounded, so it is known by where it lands and its click count; left unclaimed, it lapses rather than
+  // take a later real click.
+  struct SentOn: Equatable {
+    var location: CGPoint
+    var clickCount: Int
+    var at: TimeInterval
+
+    func isSent(_ press: SentOn) -> Bool {
+      press.clickCount == clickCount && hypot(press.location.x - location.x, press.location.y - location.y) < 0.5
+        && press.at >= at && press.at - at < 0.3
     }
   }
 
