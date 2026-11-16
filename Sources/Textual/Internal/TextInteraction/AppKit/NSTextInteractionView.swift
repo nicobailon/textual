@@ -27,7 +27,8 @@
       }
     }
 
-    override var acceptsFirstResponder: Bool { true }
+    // An area takes the keyboard only for a selection, so a click it sends on leaves focus where the control under it puts it.
+    override var acceptsFirstResponder: Bool { isArea == false || model.selectedRange != nil }
     override var isFlipped: Bool { true }
     override var mouseDownCanMoveWindow: Bool { false }
 
@@ -69,8 +70,8 @@
       if isExcluded {
         return nil
       } else if isArea {
-        guard let event = NSApp.currentEvent, event.type == .leftMouseDown,
-          event.modifierFlags.contains(.control) == false, event.timestamp != passedOn,
+        guard let event = NSApp.currentEvent,
+          Self.takesPress(event.type, control: event.modifierFlags.contains(.control), at: event.timestamp, passedOn: passedOn),
           model.isText(at: localPoint)
         else { return nil }
         return super.hitTest(point)
@@ -160,8 +161,7 @@
     }
 
     override func mouseDown(with event: NSEvent) {
-      // A click passed on leaves the keyboard where the view under the text puts it.
-      if isArea == false || event.clickCount > 1 {
+      if isArea == false {
         window?.makeFirstResponder(self)
       }
       let location = convert(event.locationInWindow, from: nil)
@@ -191,6 +191,9 @@
       default:
         break
       }
+      if isArea, model.selectedRange != nil {
+        window?.makeFirstResponder(self)
+      }
     }
 
     override func mouseDragged(with event: NSEvent) {
@@ -203,7 +206,6 @@
       if let pressedAt, isDragging == false {
         guard Self.isDrag(from: convert(pressedAt.locationInWindow, from: nil), to: location) else { return }
         isDragging = true
-        window?.makeFirstResponder(self)
       }
 
       guard let currentPosition = model.closestPosition(to: location) else {
@@ -211,6 +213,9 @@
       }
 
       model.selectedRange = TextRange(from: dragStart, to: currentPosition)
+      if isArea, window?.firstResponder !== self, model.selectedRange != nil {
+        window?.makeFirstResponder(self)
+      }
       autoscroll(with: event)
     }
 
@@ -221,6 +226,12 @@
       }
       pressedAt = nil
       isDragging = false
+    }
+
+    // Only a left press, and not the one sent on: it comes back from the queue as a new event, its timestamp rounded, and
+    // taken again it would be sent on again and again. Any real press, a double click's second too, comes later than 10 ms.
+    static func takesPress(_ type: NSEvent.EventType, control: Bool, at time: TimeInterval, passedOn: TimeInterval?) -> Bool {
+      type == .leftMouseDown && control == false && passedOn.map { abs(time - $0) >= 0.01 } != false
     }
 
     // A hand's tremor during a click moves the pointer a point or two.
