@@ -268,6 +268,15 @@
       interpretKeyEvents([event])
     }
 
+    // Tab moves on to the next control, as it does past any other text that isn't editable.
+    override func insertTab(_ sender: Any?) {
+      window?.selectNextKeyView(self)
+    }
+
+    override func insertBacktab(_ sender: Any?) {
+      window?.selectPreviousKeyView(self)
+    }
+
     override func moveRightAndModifySelection(_ sender: Any?) {
       modifySelection { position, _ in
         model.position(from: position, offset: 1)
