@@ -14,11 +14,13 @@
     private let model: TextSelectionModel
     private let overflowFrames: [CGRect]
     private let isArea: Bool
+    private let click: (@MainActor (CGPoint) -> Void)?
 
-    init(model: TextSelectionModel, overflowFrames: [CGRect], isArea: Bool = false) {
+    init(model: TextSelectionModel, overflowFrames: [CGRect], isArea: Bool = false, click: (@MainActor (CGPoint) -> Void)? = nil) {
       self.model = model
       self.overflowFrames = overflowFrames
       self.isArea = isArea
+      self.click = click
     }
 
     func makeNSView(context: Context) -> NSTextInteractionView {
@@ -28,6 +30,7 @@
         openURL: context.environment.openURL
       )
       view.isArea = isArea
+      view.textClick = click
       return view
     }
 
@@ -36,6 +39,7 @@
       nsView.exclusionRects = overflowFrames
       nsView.openURL = context.environment.openURL
       nsView.isArea = isArea
+      nsView.textClick = click
     }
   }
 #endif

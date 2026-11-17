@@ -22,6 +22,7 @@ struct TextSelectionInteraction: ViewModifier {
   #if TEXTUAL_ENABLE_TEXT_SELECTION
     @Environment(\.textSelection) private var textSelection
     @Environment(\.textSelectionChange) private var textSelectionChange
+    @Environment(\.textClick) private var textClick
     @Environment(\.textLayoutChange) private var textLayoutChange
     @Environment(TextSelectionCoordinator.self) private var coordinator: TextSelectionCoordinator?
 
@@ -45,7 +46,7 @@ struct TextSelectionInteraction: ViewModifier {
                 reportLayout()
               }
           }
-          .modifier(PlatformTextSelectionInteraction(model: model, isArea: true, isActive: isActive))
+          .modifier(PlatformTextSelectionInteraction(model: model, isArea: true, isActive: isActive, click: textClick))
           .onChange(of: model.selectedRange) {
             reportSelection()
           }

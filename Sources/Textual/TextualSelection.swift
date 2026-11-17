@@ -15,6 +15,7 @@ public struct TextualSelection: Equatable, Sendable {
 
 extension EnvironmentValues {
   @Entry var textSelectionChange: (@MainActor (TextualSelection?) -> Void)?
+  @Entry var textClick: (@MainActor (CGPoint) -> Void)?
 }
 
 extension TextualNamespace where Base: View {
@@ -23,5 +24,15 @@ extension TextualNamespace where Base: View {
   @available(watchOS, unavailable)
   public func onSelectionChange(_ action: @escaping @MainActor (TextualSelection?) -> Void) -> some View {
     base.environment(\.textSelectionChange, action)
+  }
+}
+
+extension TextualNamespace where Base: View {
+  /// Calls `action` with the point, in the area's own coordinates, where a click on the text of a
+  /// ``textual/textSelectionArea()`` landed: a press on its text that didn't move far enough to select.
+  @available(tvOS, unavailable)
+  @available(watchOS, unavailable)
+  public func onTextClick(_ action: @escaping @MainActor (CGPoint) -> Void) -> some View {
+    base.environment(\.textClick, action)
   }
 }

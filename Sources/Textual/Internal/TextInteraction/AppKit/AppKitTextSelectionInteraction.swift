@@ -22,11 +22,13 @@
     private let model: TextSelectionModel
     private let isArea: Bool
     private let isActive: Bool
+    private let click: (@MainActor (CGPoint) -> Void)?
 
-    init(model: TextSelectionModel, isArea: Bool = false, isActive: Bool = true) {
+    init(model: TextSelectionModel, isArea: Bool = false, isActive: Bool = true, click: (@MainActor (CGPoint) -> Void)? = nil) {
       self.model = model
       self.isArea = isArea
       self.isActive = isActive
+      self.click = click
     }
 
     func body(content: Content) -> some View {
@@ -38,7 +40,7 @@
           }
           .overlayPreferenceValue(OverflowFrameKey.self) { frames in
             if isActive {
-              AppKitTextInteractionOverlay(model: model, overflowFrames: frames, isArea: true)
+              AppKitTextInteractionOverlay(model: model, overflowFrames: frames, isArea: true, click: click)
             }
           }
       } else {

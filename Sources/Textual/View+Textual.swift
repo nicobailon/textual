@@ -165,8 +165,9 @@ extension TextualNamespace where Base: View {
 
   /// Makes every SwiftUI `Text` inside the view selectable as one text, so a drag can run from one to the next.
   ///
-  /// On macOS, a press that starts on text and moves selects; one that doesn't is sent on to the view under the
-  /// text, so text inside a button still clicks it. Presses elsewhere, hover and scrolling reach the views below.
+  /// On macOS, a press that starts on text and moves selects; one that doesn't is a click, reported through
+  /// ``textual/onTextClick(_:)``, since the view under the text doesn't get it. Presses elsewhere, hover and scrolling
+  /// reach the views below.
   /// Use ``textual/unselectableText()`` on text that is a control's own label.
   @available(tvOS, unavailable)
   @available(watchOS, unavailable)

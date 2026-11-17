@@ -35,12 +35,11 @@
     private var dragStart: TextPosition?
     private var selectionAnchor: TextPosition?
 
-    // In an area, a press on text that never moves is a click for the view under the text, sent on to it on release.
+    // In an area, a press on text that never moves is a click, reported on release to whoever acts on it.
+    var textClick: (@MainActor (CGPoint) -> Void)?
     private var pressedAt: NSEvent?
     private var isDragging = false
     private var showsTextCursor = false
-    private var isHandingOn = false
-    private var handedOn: (down: NSEvent, up: NSEvent)?
     private var ownsPress = false
     private var clickAway: Any?
 
@@ -71,7 +70,7 @@
       if isExcluded {
         return nil
       } else if isArea {
-        guard isHandingOn == false, let event = NSApp.currentEvent, event.type == .leftMouseDown,
+        guard let event = NSApp.currentEvent, event.type == .leftMouseDown,
           event.modifierFlags.contains(.control) == false
         else { return nil }
         guard model.isText(at: localPoint) else { return nil }
@@ -223,7 +222,7 @@
     override func mouseUp(with event: NSEvent) {
       dragStart = nil
       if let pressedAt, isDragging == false {
-        passOn(pressedAt, event)
+        textClick?(convert(pressedAt.locationInWindow, from: nil))
       }
       pressedAt = nil
       isDragging = false
@@ -232,37 +231,6 @@
     // A hand's tremor during a click moves the pointer a point or two.
     static func isDrag(from start: CGPoint, to end: CGPoint) -> Bool {
       hypot(end.x - start.x, end.y - start.y) > 3
-    }
-
-    // Sent once the release the layer took has gone through: sent within it, a SwiftUI button under the text took the click
-    // only the first time. The hit test steps aside until the click is through, so it can't come back to the layer.
-    // Only to SwiftUI-drawn content: an AppKit control under the text tracks a press in its own loop, and a pop-up would
-    // open its menu.
-    private func passOn(_ down: NSEvent, _ up: NSEvent) {
-      guard window != nil else { return }
-      isHandingOn = true
-      handedOn = (down, up)
-      DispatchQueue.main.async { [weak self] in
-        self?.handOn()
-      }
-    }
-
-    private func handOn() {
-      defer {
-        isHandingOn = false
-        handedOn = nil
-      }
-      guard let (down, up) = handedOn, let window, window.windowNumber == down.windowNumber, let content = window.contentView
-      else { return }
-      guard Self.handsClick(to: content.hitTest(content.superview?.convert(down.locationInWindow, from: nil) ?? down.locationInWindow))
-      else { return }
-      window.sendEvent(down)
-      window.sendEvent(up)
-    }
-
-    static func handsClick(to hit: NSView?) -> Bool {
-      guard let hit else { return false }
-      return (hit is NSControl) == false
     }
 
     override func rightMouseDown(with event: NSEvent) {
