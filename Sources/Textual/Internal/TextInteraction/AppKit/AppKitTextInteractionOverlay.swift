@@ -14,9 +14,9 @@
     private let model: TextSelectionModel
     private let overflowFrames: [CGRect]
     private let isArea: Bool
-    private let click: (@MainActor (CGPoint) -> Void)?
+    private let click: (@MainActor (CGPoint) -> Bool)?
 
-    init(model: TextSelectionModel, overflowFrames: [CGRect], isArea: Bool = false, click: (@MainActor (CGPoint) -> Void)? = nil) {
+    init(model: TextSelectionModel, overflowFrames: [CGRect], isArea: Bool = false, click: (@MainActor (CGPoint) -> Bool)? = nil) {
       self.model = model
       self.overflowFrames = overflowFrames
       self.isArea = isArea

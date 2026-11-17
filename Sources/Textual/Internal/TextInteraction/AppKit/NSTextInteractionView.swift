@@ -35,8 +35,9 @@
     private var dragStart: TextPosition?
     private var selectionAnchor: TextPosition?
 
-    // In an area, a press on text that never moves is a click, reported on release to whoever acts on it.
-    var textClick: (@MainActor (CGPoint) -> Void)?
+    // In an area, a press on text that never moves is a click, reported on release to whoever acts on it; it answers
+    // whether it took it.
+    var textClick: (@MainActor (CGPoint) -> Bool)?
     private var pressedAt: NSEvent?
     private var isDragging = false
     private var showsTextCursor = false
@@ -178,15 +179,16 @@
           if isArea { pressedAt = event }
         }
         dragStart = model.closestPosition(to: location)
+      // In an area a second or third press may be a second click on a control, so it waits for the release.
+      case 2 where isArea, 3 where isArea:
+        resetSelection()
+        pressedAt = event
+        dragStart = nil
       case 2:
-        if let position = model.closestPosition(to: location) {
-          model.selectedRange = model.wordRange(for: position)
-        }
+        selectWordOrBlock(at: location, clickCount: 2)
         dragStart = nil
       case 3:
-        if let position = model.closestPosition(to: location) {
-          model.selectedRange = model.blockRange(for: position)
-        }
+        selectWordOrBlock(at: location, clickCount: 3)
         dragStart = nil
       default:
         break
@@ -222,10 +224,19 @@
     override func mouseUp(with event: NSEvent) {
       dragStart = nil
       if let pressedAt, isDragging == false {
-        textClick?(convert(pressedAt.locationInWindow, from: nil))
+        let location = convert(pressedAt.locationInWindow, from: nil)
+        if textClick?(location) != true, pressedAt.clickCount > 1 {
+          selectWordOrBlock(at: location, clickCount: pressedAt.clickCount)
+          window?.makeFirstResponder(self)
+        }
       }
       pressedAt = nil
       isDragging = false
+    }
+
+    private func selectWordOrBlock(at location: CGPoint, clickCount: Int) {
+      guard let position = model.closestPosition(to: location) else { return }
+      model.selectedRange = clickCount == 2 ? model.wordRange(for: position) : model.blockRange(for: position)
     }
 
     // A hand's tremor during a click moves the pointer a point or two.

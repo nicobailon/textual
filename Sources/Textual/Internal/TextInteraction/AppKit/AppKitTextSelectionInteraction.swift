@@ -22,9 +22,9 @@
     private let model: TextSelectionModel
     private let isArea: Bool
     private let isActive: Bool
-    private let click: (@MainActor (CGPoint) -> Void)?
+    private let click: (@MainActor (CGPoint) -> Bool)?
 
-    init(model: TextSelectionModel, isArea: Bool = false, isActive: Bool = true, click: (@MainActor (CGPoint) -> Void)? = nil) {
+    init(model: TextSelectionModel, isArea: Bool = false, isActive: Bool = true, click: (@MainActor (CGPoint) -> Bool)? = nil) {
       self.model = model
       self.isArea = isArea
       self.isActive = isActive
