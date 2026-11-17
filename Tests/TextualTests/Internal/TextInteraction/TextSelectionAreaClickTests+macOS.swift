@@ -97,7 +97,7 @@
     // The word a double click selects is made on its release, after that release went by the watch for a release
     // elsewhere; the next release elsewhere still ends the selection.
     @Test
-    func aReleaseElsewhereEndsADoubleClicksWordSelection() async throws {
+    func aReleaseElsewhereEndsADoubleClicksWordSelection() async {
       let (layer, model, clicks) = Self.layer()
       clicks.takes = false
       press(layer, from: CGPoint(x: 150, y: 50), to: CGPoint(x: 150, y: 50))
@@ -105,8 +105,8 @@
       #expect(model.selectedRange != nil)
 
       layer.releasedAway()
-      // The selection ends on the main queue after the release, which a test's own main-queue turn has to yield to.
-      try await Task.sleep(for: .milliseconds(50))
+      // The selection ends in a block on the main queue; one queued after it runs once that block has.
+      await withCheckedContinuation { done in DispatchQueue.main.async { done.resume() } }
 
       #expect(model.selectedRange == nil)
     }
