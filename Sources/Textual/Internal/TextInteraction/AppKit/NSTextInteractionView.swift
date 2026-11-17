@@ -111,7 +111,7 @@
       }
     }
 
-    private func releasedAway() {
+    func releasedAway() {
       if ownsPress {
         ownsPress = false
         return
@@ -183,7 +183,7 @@
       case 2 where isArea, 3 where isArea:
         resetSelection()
         pressedAt = event
-        dragStart = nil
+        dragStart = model.closestPosition(to: location)
       case 2:
         selectWordOrBlock(at: location, clickCount: 2)
         dragStart = nil
@@ -232,6 +232,8 @@
       }
       pressedAt = nil
       isDragging = false
+      // This release has gone by the watch for one elsewhere, which a selection made just now didn't have yet.
+      ownsPress = false
     }
 
     private func selectWordOrBlock(at location: CGPoint, clickCount: Int) {

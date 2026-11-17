@@ -82,6 +82,35 @@
       #expect(model.selectedRange != nil)
     }
 
+    // A drag that starts on a second press, right after a click, selects; it isn't a second click on the control.
+    @Test
+    func aDragOnASecondPressSelectsAndIsNoClick() {
+      let (layer, model, clicks) = Self.layer()
+
+      press(layer, from: CGPoint(x: 150, y: 50), to: CGPoint(x: 150, y: 50))
+      press(layer, from: CGPoint(x: 10, y: 50), to: CGPoint(x: 290, y: 50), clickCount: 2)
+
+      #expect(clicks.points.count == 1)
+      #expect(model.selectedRange != nil)
+    }
+
+    // The word a double click selects is made on its release, after that release went by the watch for a release
+    // elsewhere; the next release elsewhere still ends the selection.
+    @Test
+    func aReleaseElsewhereEndsADoubleClicksWordSelection() async throws {
+      let (layer, model, clicks) = Self.layer()
+      clicks.takes = false
+      press(layer, from: CGPoint(x: 150, y: 50), to: CGPoint(x: 150, y: 50))
+      press(layer, from: CGPoint(x: 150, y: 50), to: CGPoint(x: 150, y: 50), clickCount: 2)
+      #expect(model.selectedRange != nil)
+
+      layer.releasedAway()
+      // The selection ends on the main queue after the release, which a test's own main-queue turn has to yield to.
+      try await Task.sleep(for: .milliseconds(50))
+
+      #expect(model.selectedRange == nil)
+    }
+
     private static let size = CGSize(width: 300, height: 100)
 
     private static func layer() -> (NSTextInteractionView, TextSelectionModel, Clicks) {
