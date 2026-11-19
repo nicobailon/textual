@@ -36,15 +36,22 @@ struct TextFragment<Content: AttributedStringProtocol>: View {
   }
 
   var body: some View {
-    text
-      .customAttribute(TextFragmentAttribute())
-      .onGeometryChange(for: CGSize?.self, of: \.textContainerSize) { size in
-        guard let size, let textBuilder = textBuilder.value else { return }
-        textBuilder.sizeChanged(size, environment: textEnvironment)
+    // Only a fragment holding text that is still fading in draws through the renderer; the branch recreates just the
+    // Text, at most twice while the fragment streams.
+    Group {
+      if let newest = content.newestFadeIn {
+        text.customAttribute(TextFragmentAttribute()).modifier(FadeIn(newest: newest))
+      } else {
+        text.customAttribute(TextFragmentAttribute())
       }
-      .modifier(TextSelectionBackground())
-      .modifier(AttachmentOverlay(attachments: content.attachments()))
-      .modifier(TextLinkInteraction())
+    }
+    .onGeometryChange(for: CGSize?.self, of: \.textContainerSize) { size in
+      guard let size, let textBuilder = textBuilder.value else { return }
+      textBuilder.sizeChanged(size, environment: textEnvironment)
+    }
+    .modifier(TextSelectionBackground())
+    .modifier(AttachmentOverlay(attachments: content.attachments()))
+    .modifier(TextLinkInteraction())
   }
 
   private var text: Text {
