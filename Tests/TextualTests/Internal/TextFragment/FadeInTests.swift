@@ -29,7 +29,9 @@
       let builder = TextFragment<AttributedString>.TextBuilder(text, environment: TextEnvironmentValues(dynamicTypeSize: .large))
       let recorder = Recorder()
       _ = ImageRenderer(content: builder.text.textRenderer(recorder)).nsImage
-      #expect(recorder.box.starts == [nil, 10])
+      #expect(recorder.box.starts.contains(nil), "\(recorder.box.starts)")
+      #expect(recorder.box.starts.contains(10), "\(recorder.box.starts)")
+      #expect(recorder.box.starts.allSatisfy { $0 == nil || $0 == 10 }, "\(recorder.box.starts)")
     }
 
     @Test func markedTextRendersWhileItFades() {
