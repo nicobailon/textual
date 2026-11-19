@@ -2,7 +2,7 @@ import SwiftUI
 
 struct FadeIn: ViewModifier {
   nonisolated static let duration: TimeInterval = 0.18
-  static let step: TimeInterval = 0.05
+  static let step: TimeInterval = 0.06
 
   let newest: TimeInterval
   @State private var now = ProcessInfo.processInfo.systemUptime
