@@ -1,6 +1,8 @@
 #if os(macOS)
   import AppKit
+  import CoreImage
   import QuartzCore
+  import SwiftUI
 
   // A cover can't know the exact color under the text (the window tints its background with the wallpaper), so it
   // blends instead of painting: lighten with a near-white over light text areas and darken with a near-black over
