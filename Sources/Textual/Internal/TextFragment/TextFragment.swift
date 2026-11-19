@@ -39,8 +39,8 @@ struct TextFragment<Content: AttributedStringProtocol>: View {
     // Only a fragment holding text that is still fading in draws through the renderer; the branch flips as marks come
     // and go, and recreates just the Text, which holds no state.
     Group {
-      if let newest = content.newestFadeIn {
-        text.customAttribute(TextFragmentAttribute()).modifier(FadeIn(newest: newest))
+      if let fade = content.fadeIns {
+        text.customAttribute(TextFragmentAttribute()).modifier(FadeIn(newest: fade.newest, gap: fade.gap))
       } else {
         text.customAttribute(TextFragmentAttribute())
       }

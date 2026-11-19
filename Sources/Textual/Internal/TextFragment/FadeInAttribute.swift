@@ -5,7 +5,9 @@ struct FadeInAttribute: TextAttribute {
 }
 
 extension AttributedStringProtocol {
-  var newestFadeIn: TimeInterval? {
-    runs[AttributeScopes.TextualAttributes.FadeInAttribute.self].compactMap(\.0).max()
+  var fadeIns: (newest: TimeInterval, gap: TimeInterval?)? {
+    let starts = Set(runs[AttributeScopes.TextualAttributes.FadeInAttribute.self].compactMap(\.0)).sorted()
+    guard let newest = starts.last else { return nil }
+    return (newest, starts.dropLast().last.map { newest - $0 })
   }
 }

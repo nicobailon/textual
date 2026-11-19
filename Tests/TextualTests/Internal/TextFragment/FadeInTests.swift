@@ -6,13 +6,16 @@
 
   @MainActor
   struct FadeInTests {
-    @Test func newestFadeInIsTheLatestMarkedRun() {
+    @Test func fadeInsGiveTheNewestArrivalAndTheGapBeforeIt() {
       var text = AttributedString("settled fresh newest")
-      #expect(text.newestFadeIn == nil)
+      #expect(text.fadeIns == nil)
       text[text.range(of: "fresh")!].textual.fadeIn = 10
+      #expect(text.fadeIns?.newest == 10)
+      #expect(text.fadeIns?.gap == nil)
       text[text.range(of: "newest")!].textual.fadeIn = 12
-      #expect(text.newestFadeIn == 12)
-      #expect(text[text.range(of: "settled")!].newestFadeIn == nil)
+      #expect(text.fadeIns?.newest == 12)
+      #expect(text.fadeIns?.gap == 2)
+      #expect(text[text.range(of: "settled")!].fadeIns == nil)
     }
 
     @Test func opacityEasesOutOnceOverTheDuration() {
