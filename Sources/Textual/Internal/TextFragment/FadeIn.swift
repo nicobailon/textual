@@ -2,22 +2,24 @@ import SwiftUI
 
 struct FadeIn: ViewModifier {
   nonisolated static let duration: TimeInterval = 0.18
+  static let step: TimeInterval = 0.05
 
   let newest: TimeInterval
-  @State private var appeared = false
+  @State private var now = ProcessInfo.processInfo.systemUptime
 
-  // The clock runs once from the newest arrival, so nothing draws once it ends, and a run that arrived earlier keeps
-  // fading where it was when a newer one lands. Appearing counts as a trigger, so a new paragraph fades in too.
+  // A clock stepped by a task, not an animation: a renderer that changes every display frame re-measures the window
+  // up to its root. A stream faster than the step redraws only when its words land; a slower one adds a few steps,
+  // then stops on `newest + duration`. Drawing a step ahead shows the newest words at once.
   func body(content: Content) -> some View {
+    let end = newest + Self.duration
     content
-      .keyframeAnimator(initialValue: newest, trigger: appeared ? newest : -1) { content, now in
-        content.textRenderer(FadeInRenderer(now: now))
-      } keyframes: { _ in
-        let end = newest + Self.duration
-        let now = min(ProcessInfo.processInfo.systemUptime, end)
-        MoveKeyframe(now)
-        LinearKeyframe(end, duration: max(end - now, 0.001))
+      .textRenderer(FadeInRenderer(now: max(now, min(newest + Self.step, end))))
+      .task(id: newest) {
+        while now < end {
+          try? await Task.sleep(for: .seconds(Self.step))
+          if Task.isCancelled { return }
+          now = min(ProcessInfo.processInfo.systemUptime, end)
+        }
       }
-      .onAppear { appeared = true }
   }
 }
