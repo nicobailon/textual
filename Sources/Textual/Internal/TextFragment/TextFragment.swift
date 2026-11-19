@@ -36,22 +36,16 @@ struct TextFragment<Content: AttributedStringProtocol>: View {
   }
 
   var body: some View {
-    // Only a fragment holding text that is still fading in draws through the renderer; the branch flips as marks come
-    // and go, and recreates just the Text, which holds no state.
-    Group {
-      if let fade = content.fadeIns {
-        text.customAttribute(TextFragmentAttribute()).modifier(FadeIn(newest: fade.newest, gap: fade.gap))
-      } else {
-        text.customAttribute(TextFragmentAttribute())
+    text
+      .customAttribute(TextFragmentAttribute())
+      .onGeometryChange(for: CGSize?.self, of: \.textContainerSize) { size in
+        guard let size, let textBuilder = textBuilder.value else { return }
+        textBuilder.sizeChanged(size, environment: textEnvironment)
       }
-    }
-    .onGeometryChange(for: CGSize?.self, of: \.textContainerSize) { size in
-      guard let size, let textBuilder = textBuilder.value else { return }
-      textBuilder.sizeChanged(size, environment: textEnvironment)
-    }
-    .modifier(TextSelectionBackground())
-    .modifier(AttachmentOverlay(attachments: content.attachments()))
-    .modifier(TextLinkInteraction())
+      .modifier(TextSelectionBackground())
+      .modifier(AttachmentOverlay(attachments: content.attachments()))
+      .modifier(TextLinkInteraction())
+      .modifier(FadeInOverlay(fadesIn: content.fadesIn))
   }
 
   private var text: Text {
