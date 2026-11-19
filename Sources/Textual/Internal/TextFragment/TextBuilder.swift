@@ -93,6 +93,10 @@ extension Text {
         text = text.customAttribute(LinkAttribute(link))
       }
 
+      if let start = run.textual.fadeIn {
+        text = text.customAttribute(FadeInAttribute(start: start))
+      }
+
       return text
     }
 

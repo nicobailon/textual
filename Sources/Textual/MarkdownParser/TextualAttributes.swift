@@ -18,11 +18,21 @@ extension AttributeScopes {
       public static let name = "Textual.EmojiURL"
     }
 
+    /// Marks text that arrived while it streams, with the time it arrived on the system uptime clock
+    /// (`ProcessInfo.systemUptime`). Textual fades it in over 0.18 seconds from then.
+    public enum FadeInAttribute: AttributedStringKey {
+      public typealias Value = TimeInterval
+      public static let name = "Textual.FadeIn"
+    }
+
     /// A property for accessing an attachment attribute.
     public let attachment: AttachmentAttribute
 
     /// A property for accessing an emoji URL attribute.
     public let emojiURL: EmojiURLAttribute
+
+    /// A property for accessing a fade-in attribute.
+    public let fadeIn: FadeInAttribute
 
     public let foundation: AttributeScopes.FoundationAttributes
   }
