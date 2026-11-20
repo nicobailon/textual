@@ -19,6 +19,26 @@
       return url
     }
 
+    func link(for point: CGPoint) -> (url: URL, rects: [CGRect])? {
+      guard let layout = layouts.first(where: { $0.frame.contains(point) }) else {
+        return nil
+      }
+
+      let localPoint = CGPoint(
+        x: point.x - layout.origin.x,
+        y: point.y - layout.origin.y
+      )
+
+      guard let url = layout.runs.first(where: { $0.typographicBounds.contains(localPoint) })?.url else {
+        return nil
+      }
+
+      let rects = layout.runs.filter { $0.url == url }.map {
+        $0.typographicBounds.offsetBy(dx: layout.origin.x, dy: layout.origin.y)
+      }
+      return (url, rects)
+    }
+
     func firstRect(for range: TextRange) -> CGRect {
       guard !range.isCollapsed else {
         return caretRect(for: range.start)

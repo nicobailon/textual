@@ -24,6 +24,7 @@ public struct InlineStyle: Sendable, Hashable {
   var code: AnyTextProperty = AnyTextProperty(.monospaced)
   var emphasis: AnyTextProperty = AnyTextProperty(.italic)
   var link: AnyTextProperty = AnyTextProperty(.foregroundColor(.accentColor))
+  var schemeLinks: [String: AnyTextProperty] = [:]
   var strong: AnyTextProperty = AnyTextProperty(.bold)
   var strikethrough: AnyTextProperty = AnyTextProperty(.strikethroughStyle(.single))
 
@@ -52,6 +53,11 @@ public struct InlineStyle: Sendable, Hashable {
   /// - Returns: A new style with the modified link formatting.
   public func link<each P: TextProperty>(_ properties: repeat each P) -> Self {
     modifyingStyle { $0.link = AnyTextProperty(repeat each properties) }
+  }
+
+  /// Returns a copy of this style with custom formatting for links whose URL has `scheme`, in place of ``link(_:)``'s.
+  public func link<each P: TextProperty>(scheme: String, _ properties: repeat each P) -> Self {
+    modifyingStyle { $0.schemeLinks[scheme] = AnyTextProperty(repeat each properties) }
   }
 
   /// Returns a copy of this style with custom strong formatting.

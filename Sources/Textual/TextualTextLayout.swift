@@ -66,6 +66,13 @@ public struct TextualHit: Equatable, Sendable {
       return rect.isNull ? nil : rect
     }
 
+    /// The link under `point`, and the bounds of every run in its text fragment that draws it.
+    public func link(at point: CGPoint) -> (url: URL, rects: [CGRect])? {
+      let local = CGPoint(x: point.x - origin.x, y: point.y - origin.y)
+      guard model.hasText, let link = model.link(for: local) else { return nil }
+      return (link.url, link.rects.map { $0.offsetBy(dx: origin.x, dy: origin.y) })
+    }
+
     /// All the text the view draws, in the order its offsets count it.
     public var string: String {
       model.hasText ? model.text(in: TextRange(start: model.startPosition, end: model.endPosition)) : ""

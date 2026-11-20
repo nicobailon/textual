@@ -86,6 +86,10 @@
       layoutCollection.url(for: point)
     }
 
+    func link(for point: CGPoint) -> (url: URL, rects: [CGRect])? {
+      layoutCollection.link(for: point)
+    }
+
     func isText(at point: CGPoint) -> Bool {
       layoutCollection.isText(at: point)
     }
