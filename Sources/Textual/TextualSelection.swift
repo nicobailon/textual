@@ -2,14 +2,21 @@ import SwiftUI
 
 /// The text a user has selected in ``StructuredText`` or ``InlineText``.
 ///
-/// `bounds` encloses the selection in the coordinate space of the text view the selection belongs to.
+/// `bounds` encloses the selection in the coordinate space of the text view the selection belongs to. `before` and
+/// `after` are the text beside it, up to ``TextualSelection/contextLength`` UTF-16 units on each side.
 public struct TextualSelection: Equatable, Sendable {
+  public static let contextLength = 40
+
   public let text: String
   public let bounds: CGRect
+  public let before: String
+  public let after: String
 
-  public init(text: String, bounds: CGRect) {
+  public init(text: String, bounds: CGRect, before: String = "", after: String = "") {
     self.text = text
     self.bounds = bounds
+    self.before = before
+    self.after = after
   }
 }
 

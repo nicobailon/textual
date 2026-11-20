@@ -89,8 +89,18 @@ struct TextSelectionInteraction: ViewModifier {
         return
       }
       let bounds = model.selectionRects(for: range).reduce(CGRect.null) { $0.union($1.rect) }
+      let length = TextualSelection.contextLength
+      let back = min(length, model.offset(from: model.startPosition, to: range.start))
+      let ahead = min(length, model.offset(from: range.end, to: model.endPosition))
+      let before = model.position(from: range.start, offset: -back).map { model.text(in: TextRange(from: $0, to: range.start)) }
+      let after = model.position(from: range.end, offset: ahead).map { model.text(in: TextRange(from: range.end, to: $0)) }
       textSelectionChange(
-        TextualSelection(text: model.text(in: range), bounds: bounds.offsetBy(dx: origin.x, dy: origin.y))
+        TextualSelection(
+          text: model.text(in: range),
+          bounds: bounds.offsetBy(dx: origin.x, dy: origin.y),
+          before: before ?? "",
+          after: after ?? ""
+        )
       )
     }
   #endif
