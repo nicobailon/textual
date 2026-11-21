@@ -23,6 +23,17 @@ public struct TextualSelection: Equatable, Sendable {
 extension EnvironmentValues {
   @Entry var textSelectionChange: (@MainActor (TextualSelection?) -> Void)?
   @Entry var textClick: (@MainActor (CGPoint) -> Bool)?
+  @Entry var textSelectionClears = 0
+}
+
+extension TextualNamespace where Base: View {
+  /// Clears the selection in the ``textual/textSelectionArea()`` inside the view each time `count` changes, as a click
+  /// away from it would: for an action that has taken the selected text.
+  @available(tvOS, unavailable)
+  @available(watchOS, unavailable)
+  public func clearsSelection(_ count: Int) -> some View {
+    base.environment(\.textSelectionClears, count)
+  }
 }
 
 extension TextualNamespace where Base: View {

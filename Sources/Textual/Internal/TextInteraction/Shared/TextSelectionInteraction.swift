@@ -23,6 +23,7 @@ struct TextSelectionInteraction: ViewModifier {
     @Environment(\.textSelection) private var textSelection
     @Environment(\.textSelectionChange) private var textSelectionChange
     @Environment(\.textClick) private var textClick
+    @Environment(\.textSelectionClears) private var clears
     @Environment(\.textLayoutChange) private var textLayoutChange
     @Environment(TextSelectionCoordinator.self) private var coordinator: TextSelectionCoordinator?
 
@@ -49,6 +50,9 @@ struct TextSelectionInteraction: ViewModifier {
           .modifier(PlatformTextSelectionInteraction(model: model, isArea: true, isActive: isActive, click: textClick))
           .onChange(of: model.selectedRange) {
             reportSelection()
+          }
+          .onChange(of: clears) {
+            model.selectedRange = nil
           }
           .onHover { isHovering = $0 }
       } else if textSelection.allowsSelection {
